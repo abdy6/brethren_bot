@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 import definitions
 import time
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -26,12 +29,14 @@ class BrethrenBot(commands.Bot):
         for ext in extensions:
             await self.load_extension(ext)
             print(f"Loaded extension {ext}")
+            logger.debug(f"Loaded extension {ext}")
 
         try:
             synced_commands = await self.tree.sync()
             print(f"Synced {len(synced_commands)} commands: {[cmd.name for cmd in synced_commands]}")
+            logger.debug(f"Synced {len(synced_commands)} commands: {[cmd.name for cmd in synced_commands]}")
         except Exception as e:
-            print(e)
+            logger.error("Error", exc_info=True)
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
