@@ -12,7 +12,9 @@ class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
+    @commands.hybrid_command(name='coinflip', description='Do a coin flip (50/50).', aliases=['cf'])
+    async def coinflip(self, ctx):
+        await ctx.reply(random.choice(["Heads", "Tails"]))
     
 async def setup(bot):
     await bot.add_cog(Fun(bot))

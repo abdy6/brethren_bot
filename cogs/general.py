@@ -18,7 +18,7 @@ class General(commands.Cog):
     @commands.hybrid_command(name='ping', description='Check if the bot is online.')
     async def ping(self, ctx):
         logger.debug(f"Command 'ping' called by user '{ctx.author.name}', id: {ctx.author.id}")
-        await ctx.reply("Pong!")
+        await ctx.reply(f"Pong! {(self.bot.latency * 1000):.2f} ms")
 
     @commands.hybrid_command(name='echo', description='Send the passed string in chat.')
     @app_commands.describe(message='What to send')
@@ -51,6 +51,7 @@ class General(commands.Cog):
     @commands.hybrid_command(
         name='avatar', 
         description='Show the avatar of a user (defaults to yourself).',
+        aliases=['av']
     )
     @app_commands.describe(user="The user to show the avatar for")
     async def avatar(
