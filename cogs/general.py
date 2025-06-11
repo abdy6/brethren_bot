@@ -5,6 +5,7 @@ import math
 import time
 import datetime
 import logging
+import definitions
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +13,18 @@ class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # Debug commands
+
     @commands.hybrid_command(name='ping', description='Check if the bot is online.')
     async def ping(self, ctx):
         logger.debug(f"Command 'ping' called by user '{ctx.author.name}', id: {ctx.author.id}")
         await ctx.reply("Pong!")
+
+    @commands.hybrid_command(name='echo', description='Send the passed string in chat.')
+    @app_commands.describe(message='What to send')
+    @definitions.is_bot_owner()
+    async def echo(self, ctx, *, message: str):
+        await ctx.send(message)
 
     # See how long the bot has been online
     @commands.hybrid_command(
@@ -27,7 +36,7 @@ class General(commands.Cog):
 
         uptime_seconds = math.floor(time.monotonic() - self.bot.monotonic_start_time)
         embed = discord.Embed(title='Bot uptime', color=discord.Color.darker_gray())
-        embed.description = '''__Start time:__ <t:{math.floor(self.bot.start_time.timestamp())}>
+        embed.description = f'''__Start time:__ <t:{math.floor(self.bot.start_time.timestamp())}>
         
         __Uptime:__ {datetime.timedelta(seconds=uptime_seconds)}
         __in seconds:__ {uptime_seconds}'''
@@ -35,6 +44,8 @@ class General(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    
+    # Actually useful commands probably
     
     # Get a user's avatar (profile picture)
     @commands.hybrid_command(

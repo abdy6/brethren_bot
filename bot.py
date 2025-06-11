@@ -13,7 +13,9 @@ load_dotenv()
 
 
 extensions = [
-    'cogs.general'
+    'cogs.general',
+    'cogs.fun',
+    # 'cogs.fun2',
 ]
 
 
