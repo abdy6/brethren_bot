@@ -44,7 +44,7 @@ class BrethrenBot(commands.Bot):
             synced_commands = await self.tree.sync()
             print(f"Synced {len(synced_commands)} commands: {[cmd.name for cmd in synced_commands]}")
             logger.debug("Synced %s commands: %s", len(synced_commands), [cmd.name for cmd in synced_commands])
-        except Exception as e:
+        except Exception as e: # pylint: disable=W0612,W0718
             logger.error("Error", exc_info=True)
 
     async def on_ready(self):

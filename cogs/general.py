@@ -36,7 +36,7 @@ class General(commands.Cog):
 
         uptime_seconds = math.floor(time.monotonic() - self.bot.monotonic_start_time)
         embed = discord.Embed(title='Bot uptime', color=discord.Color.darker_gray())
-        embed.description = f'''__Start time:__ <t:{math.floor(self.bot.start_time.timestamp())}>
+        embed.description = f'''__Start time:__ <t:{int(self.bot.start_time.timestamp())}>
         
         __Uptime:__ {datetime.timedelta(seconds=uptime_seconds)}
         __in seconds:__ {uptime_seconds}'''
@@ -50,7 +50,9 @@ class General(commands.Cog):
         await ctx.reply("Shutting down.")
         await self.bot.close()
 
+
     # Actually useful commands probably
+
     # Get a user's avatar (profile picture)
     @commands.hybrid_command(
         name='avatar',
@@ -77,11 +79,31 @@ class General(commands.Cog):
             color=discord.Color.darker_gray()
         )
         embed.set_image(url=target.display_avatar.url)
-        embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text=f'Requested by {ctx.author.name}', icon_url=ctx.author.display_avatar.url)
 
         await ctx.reply(embed=embed)
+    
+    # Fetch and show a user's banner.
+    @commands.hybrid_command(name="banner", description="Show a user's banner image")
+    @discord.app_commands.describe(user="User to get the banner of")
+    async def banner(self, ctx, user: discord.User = None):
+        user = user or ctx.author
+        fetched_user = await self.bot.fetch_user(user.id)
+
+        if fetched_user.banner:
+            embed = discord.Embed(title=f"{fetched_user.name}'s Banner", color=discord.Color.darker_gray())
+            embed.set_image(url=fetched_user.banner.url)
+            embed.set_footer(text=f'Requested by {ctx.author.name}', icon_url=ctx.author.display_avatar.url)
+            await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(
+                description=f"{fetched_user.name} does not have a banner.", 
+                color=discord.Color.darker_gray()
+            )
+            embed.set_footer(text=f'Requested by {ctx.author.name}', icon_url=ctx.author.display_avatar.url)
+            await ctx.send(embed=embed)
+
 
 
 async def setup(bot):
     await bot.add_cog(General(bot))
-
