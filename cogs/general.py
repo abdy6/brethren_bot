@@ -44,12 +44,16 @@ class General(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    
+    @commands.hybrid_command(name='shutdown', description="Shut down the bot.")
+    @definitions.is_bot_owner()
+    async def shutdown(self, ctx):
+        await ctx.reply("Shutting down.")
+        await self.bot.close()
+
     # Actually useful commands probably
-    
     # Get a user's avatar (profile picture)
     @commands.hybrid_command(
-        name='avatar', 
+        name='avatar',
         description='Show the avatar of a user (defaults to yourself).',
         aliases=['av']
     )
@@ -80,3 +84,4 @@ class General(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(General(bot))
+
