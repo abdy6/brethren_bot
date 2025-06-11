@@ -3,12 +3,14 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import definitions
+import time
+import datetime
 
 load_dotenv()
 
 
 extensions = [
-    'brethren_bot.cogs.general'
+    'cogs.general'
 ]
 
 
@@ -26,14 +28,17 @@ class BrethrenBot(commands.Bot):
             print(f"Loaded extension {ext}")
 
         try:
-            synced_commands = self.tree.sync()
+            synced_commands = await self.tree.sync()
             print(f"Synced {len(synced_commands)} commands: {[cmd.name for cmd in synced_commands]}")
         except Exception as e:
             print(e)
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
-        print("------")
+        
+        self.start_time = datetime.datetime.now()
+        # Used to count the bot's uptime
+        self.monotonic_start_time = time.monotonic()
 
 def run_bot():
     token = os.getenv("BOT_TOKEN")
