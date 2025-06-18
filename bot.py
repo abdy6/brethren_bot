@@ -17,6 +17,7 @@ extensions = [
     'cogs.general',
     'cogs.fun',
     # 'cogs.fun2',
+    'cogs.logger'
 ]
 
 

@@ -17,7 +17,7 @@ class General(commands.Cog):
 
     @commands.hybrid_command(name='ping', description='Check if the bot is online.')
     async def ping(self, ctx):
-        logger.debug(f"Command 'ping' called by user '{ctx.author.name}', id: {ctx.author.id}")
+        logger.debug(f"Command ping called by user {ctx.author.name}, id: {ctx.author.id}")
         await ctx.reply(f"Pong! {(self.bot.latency * 1000):.2f} ms")
 
     @commands.hybrid_command(name='echo', description='Send the passed string in chat.')
@@ -32,7 +32,7 @@ class General(commands.Cog):
         description="See how long the bot has been online.",
     )
     async def uptime(self, ctx):
-        logger.debug(f"Command 'uptime' called by user '{ctx.author.name}', id: {ctx.author.id}")
+        logger.debug(f"Command uptime called by user {ctx.author.name}, id: {ctx.author.id}")
 
         uptime_seconds = math.floor(time.monotonic() - self.bot.monotonic_start_time)
         embed = discord.Embed(title='Bot uptime', color=discord.Color.darker_gray())
@@ -67,7 +67,7 @@ class General(commands.Cog):
     ):
         target = user or ctx.author
         logger.debug(
-            "Command 'avatar' called by user '%s' (id: %s) for target '%s' (id: %s)",
+            "Command avatar called by user %s (id: %s) for target '%s' (id: %s)",
             ctx.author.name,
             ctx.author.id,
             target.name,

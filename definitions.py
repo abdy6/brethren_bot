@@ -15,7 +15,7 @@ class Config:
 
 def load_config(path='config.json') -> Config:
     """Return the bot's configuration."""
-    with open(path, 'r') as file:
+    with open(path, 'r') as file: # pylint: disable=unspecified-encoding
         data = json.load(file)
 
     logger.debug(f"Loaded config: {data}")
