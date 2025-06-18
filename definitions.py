@@ -9,6 +9,8 @@ class Config:
     def __init__(self, data):
         self.command_prefix = data.get('command_prefix', ';') # Default value: ";"
         self.owner_id = data.get('owner_id', 424970840015110145) # Default owner: adam.2006
+        self.log_channel_id = data['log_channel_id'] # Channel to send logs (such as notification about editing/deletion) to
+        self.log_guild_id = data['log_guild_id'] # The guild to log 
 
 
 def load_config(path='config.json') -> Config:
