@@ -104,11 +104,8 @@ class Logger(commands.Cog):
     # For debug purposes
     @commands.hybrid_command(name="snipelist", help="Show sniped message dictionary (debug)", aliases=['sl'])
     @definitions.is_bot_owner()
-    async def snipelist(self, ctx, raw: bool = False):
-        if raw:
-            await ctx.send('```' + pprint.pformat(self.sniped_messages) + '```')
-        else:
-            await ctx.send(f"```{pprint.pformat(self.sniped_messages_debug)}```")
+    async def snipelist(self, ctx):
+        await ctx.send(f"```{pprint.pformat(self.sniped_messages_debug)}```")
     
 
 async def setup(bot):

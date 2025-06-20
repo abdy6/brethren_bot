@@ -17,7 +17,8 @@ extensions = [
     'cogs.general',
     'cogs.fun',
     # 'cogs.fun2',
-    'cogs.logger'
+    'cogs.logger',
+    'cogs.math'
 ]
 
 
@@ -26,6 +27,7 @@ class BrethrenBot(commands.Bot):
     def __init__(self, bot_config: Config):
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True
         self.config = bot_config
 
         self.start_time = datetime.datetime.now()

@@ -138,7 +138,7 @@ class General(commands.Cog):
             f"Text Channels:  {len(text_channels)}\n"
             f"Voice Channels: {len(voice_channels)}\n"
             f"Boost Level:    {boost_level}\n"
-            f"Boosters:       {boosters}```"
+            f"Boosts:         {boosters}```"
         )
 
 
