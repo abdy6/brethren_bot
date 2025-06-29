@@ -1,6 +1,10 @@
 {
     "command_prefix": ";",
     "owner_id": 424970840015110145,
-    "log_channel_id": 1161644728840888341,
-    "log_guild_id": 1158077169348661330
+    "guilds": {
+        "1158077169348661330": {
+            "log_channel_id": 1161644728840888341,
+            "ignored_channels": []
+        }
+    }
 }
