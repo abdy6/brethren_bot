@@ -15,8 +15,15 @@ class Logger(commands.Cog):
     
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
-        # Only messages deleted in the specified guild should be logged
-        if message.guild is None or message.guild.id != self.bot.config.log_guild_id:
+        if message.guild is None:
+            return
+
+        guild_cfg = definitions.get_guild_config(message.guild.id)
+
+        if guild_cfg.log_channel_id is None:
+            return
+
+        if message.channel.id in guild_cfg.ignored_channels:
             return
         
         # Store deleted message for sniping
@@ -30,7 +37,7 @@ class Logger(commands.Cog):
             message.author.id,
             message.content
         )
-        log_channel = message.guild.get_channel(self.bot.config.log_channel_id)
+        log_channel = message.guild.get_channel(guild_cfg.log_channel_id)
         if log_channel:
             embed = discord.Embed(
                 title="Message Deleted",

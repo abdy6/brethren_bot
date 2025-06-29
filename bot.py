@@ -18,7 +18,8 @@ extensions = [
     'cogs.fun',
     # 'cogs.fun2',
     'cogs.logger',
-    'cogs.math'
+    'cogs.math',
+    'cogs.server_config'
 ]
 
 
