@@ -19,6 +19,17 @@ class Logger(commands.Cog):
             return
 
         guild_cfg = definitions.get_guild_config(message.guild.id)
+        print("IGNORED:", guild_cfg.ignored_channels, "THIS:", message.channel.id)
+        # print(type(guild_cfg.ignored_channels[0]))
+        # print(f"ignored: {message.channel.id in guild_cfg.ignored_channels}")
+
+        logger.debug(
+            'Message deleted in channel %s: %s (%s): %s',
+            message.channel.id,
+            message.author.name,
+            message.author.id,
+            message.content
+        )
 
         if guild_cfg.log_channel_id is None:
             return
@@ -30,13 +41,6 @@ class Logger(commands.Cog):
         self.sniped_messages[message.channel.id] = message
         self.sniped_messages_debug[message.channel.name] = (message.author.name, message.content)
         
-        logger.debug(
-            'Message deleted in channel %s: %s (%s): %s',
-            message.channel.id,
-            message.author.name,
-            message.author.id,
-            message.content
-        )
         log_channel = message.guild.get_channel(guild_cfg.log_channel_id)
         if log_channel:
             embed = discord.Embed(

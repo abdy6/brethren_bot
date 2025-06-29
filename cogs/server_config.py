@@ -9,7 +9,8 @@ class ServerConfig(commands.Cog):
         self.bot = bot
 
     @commands.hybrid_command(name="setlogchannel", help="Set the log channel for this server.")
-    @commands.has_guild_permissions(manage_guild=True)
+    # @commands.has_guild_permissions(manage_guild=True)
+    @definitions.is_bot_owner()
     async def set_log_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         cfg = definitions.get_guild_config(ctx.guild.id)
         cfg.log_channel_id = channel.id
@@ -17,7 +18,8 @@ class ServerConfig(commands.Cog):
         await ctx.reply(f"Log channel set to {channel.mention}")
 
     @commands.hybrid_command(name="ignorechannel", help="Toggle logging for a channel.")
-    @commands.has_guild_permissions(manage_guild=True)
+    # @commands.has_guild_permissions(manage_guild=True)
+    @definitions.is_bot_owner()
     async def ignore_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         cfg = definitions.get_guild_config(ctx.guild.id)
         if channel.id in cfg.ignored_channels:
@@ -37,6 +39,30 @@ class ServerConfig(commands.Cog):
             return
         channels = [f"<#{cid}>" for cid in cfg.ignored_channels]
         await ctx.reply("Ignored channels: " + ", ".join(channels))
+
+    @commands.hybrid_command(
+        name="dumpconfig",
+        help="(Debug) Dump the raw config JSON."
+    )
+    @definitions.is_bot_owner()
+    async def show_config(self, ctx: commands.Context):
+        """Send the current configuration as pretty-printed JSON."""
+        import json
+        from io import BytesIO
+
+        raw_dict = definitions._config.to_dict()
+        pretty_json = json.dumps(raw_dict, indent=4)
+
+        # Discord has a 2000 character limit for normal messages
+        if len(pretty_json) <= 1990:
+            await ctx.reply(f"```json\n{pretty_json}\n```")
+        else:
+            # If too large, send as a file
+            fp = BytesIO(pretty_json.encode("utf-8"))
+            await ctx.reply(
+                file=discord.File(fp, filename="config.json")
+            )
+
 
 async def setup(bot):
     await bot.add_cog(ServerConfig(bot))
