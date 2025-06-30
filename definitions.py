@@ -1,6 +1,7 @@
 import json
 import logging
 from discord.ext import commands
+import discord
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,8 @@ def get_guild_config(guild_id: int) -> GuildConfig:
 def save_config(path: str = 'config.json') -> None:
     """Persist the current configuration to ``path``."""
     _config.save(path)
+
+# Command checks
 
 def is_bot_owner():
     """Check whether command issuer is me (adam.2006)"""

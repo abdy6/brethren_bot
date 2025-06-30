@@ -1,9 +1,11 @@
-import discord
-from discord.ext import commands
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 import definitions
 import pprint
+
+import discord
+from discord.ext import commands
+from discord.ui import View, Button
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,10 @@ class Logger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sniped_messages: dict[int, discord.Message] = {} # {channel.id, message}
-        self.sniped_messages_debug: dict[str, (str, str)] = {}
+        self.sniped_messages_debug: dict[str, Tuple[str, str]] = {}
+
+        self.edited_messages: dict[int, Tuple[discord.Message, discord.Message]] = {}
+        self.edited_messages_debug: dict[str, Tuple[str, str]] = {}
     
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
@@ -19,7 +24,7 @@ class Logger(commands.Cog):
             return
 
         guild_cfg = definitions.get_guild_config(message.guild.id)
-        print("IGNORED:", guild_cfg.ignored_channels, "THIS:", message.channel.id)
+        # print("IGNORED:", guild_cfg.ignored_channels, "THIS:", message.channel.id)
         # print(type(guild_cfg.ignored_channels[0]))
         # print(f"ignored: {message.channel.id in guild_cfg.ignored_channels}")
 
@@ -75,9 +80,64 @@ class Logger(commands.Cog):
                 )
                         
             await log_channel.send(embed=embed)
-    
+
+    @commands.Cog.listener()
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        # only care about guild messages, non-bot, and real content changes
+        if before.guild is None or before.author.bot:
+            return
+        if before.content == after.content:
+            return
+
+        guild_cfg = definitions.get_guild_config(before.guild.id)
+        if guild_cfg.log_channel_id is None:
+            return
+        if before.channel.id in guild_cfg.ignored_channels:
+            return
+
+        # cache for editsnipe
+        self.edited_messages[before.channel.id] = (before, after)
+        self.edited_messages_debug[before.channel.name] = (before.content, after.content)
+
+        # send to your log channel
+        log_channel = before.guild.get_channel(guild_cfg.log_channel_id)
+        if not log_channel:
+            return
+
+        embed = discord.Embed(
+            title="Message Edited",
+            color=discord.Color.orange(),
+            timestamp=after.edited_at or after.created_at
+        )
+        embed.set_author(name=str(before.author), icon_url=before.author.display_avatar.url)
+        embed.add_field(name="Channel", value=before.channel.mention, inline=True)
+        embed.add_field(
+            name="Before",
+            value=before.content or "*No text content*",
+            inline=False
+        )
+        embed.add_field(
+            name="After",
+            value=after.content or "*No text content*",
+            inline=False
+        )
+        embed.set_footer(text=f"User ID: {before.author.id}")
+
+        # build a View with a link button
+        view = View()
+        jump_url = f"https://discord.com/channels/{before.guild.id}/{before.channel.id}/{after.id}"
+        view.add_item(
+            Button(
+                label="Jump to Message",
+                style=discord.ButtonStyle.link,
+                url=jump_url
+            )
+        )
+
+        await log_channel.send(embed=embed, view=view)
     
     @commands.hybrid_command(name="snipe", help="Show the most recently deleted message in this channel.")
+    @commands.has_permissions(manage_messages=True)
     async def snipe(self, ctx: commands.Context):
         msg: Optional[discord.Message] = self.sniped_messages.get(ctx.channel.id)
         if msg is None:
@@ -112,11 +172,37 @@ class Logger(commands.Cog):
 
         await ctx.send(embed=embed)
     
+    @commands.hybrid_command(
+        name="editsnipe", 
+        help="Show the most recent edited message in this channel.",
+        aliases=['esnipe']
+    )
+    @commands.has_permissions(manage_messages=True)
+    async def editsnipe(self, ctx: commands.Context):
+        pair = self.edited_messages.get(ctx.channel.id)
+        if pair is None:
+            await ctx.reply("There's nothing to editsnipe.")
+            return
+
+        before, after = pair
+        embed = discord.Embed(
+            color=discord.Color.orange(),
+            timestamp=after.edited_at or after.created_at
+        )
+        embed.set_author(name=str(before.author), icon_url=before.author.display_avatar.url)
+        embed.set_footer(text=f"Edited in #{ctx.channel.name}")
+
+        embed.add_field(name="Before", value=before.content or "*No text content*", inline=False)
+        embed.add_field(name="After", value=after.content or "*No text content*", inline=False)
+
+        await ctx.send(embed=embed)
+
     # For debug purposes
     @commands.hybrid_command(name="snipelist", help="Show sniped message dictionary (debug)", aliases=['sl'])
     @definitions.is_bot_owner()
     async def snipelist(self, ctx):
-        await ctx.send(f"```{pprint.pformat(self.sniped_messages_debug)}```")
+        await ctx.send(f"```Deletes: {pprint.pformat(self.sniped_messages_debug)}\n"
+                       f"Edits:   {pprint.pformat(self.edited_messages_debug)}```")
     
 
 async def setup(bot):

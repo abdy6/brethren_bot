@@ -35,10 +35,27 @@ class General(commands.Cog):
         logger.debug(f"Command uptime called by user {ctx.author.name}, id: {ctx.author.id}")
 
         uptime_seconds = math.floor(time.monotonic() - self.bot.monotonic_start_time)
+        days, rem = divmod(uptime_seconds, 86400)
+        hours, rem = divmod(rem, 3600)           
+        minutes, seconds = divmod(rem, 60)        
+
+        parts = []
+        if days:
+            parts.append(f"{days}d")
+        if hours:
+            parts.append(f"{hours}h")
+        if minutes:
+            parts.append(f"{minutes}m")
+        # Always show seconds (or if total was 0)
+        if seconds or not parts:
+            parts.append(f"{seconds}s")
+
+        uptime_string = " ".join(parts)
+
         embed = discord.Embed(title='Bot uptime', color=discord.Color.darker_gray())
         embed.description = f'''__Start time:__ <t:{int(self.bot.start_time.timestamp())}>
         
-        __Uptime:__ {datetime.timedelta(seconds=uptime_seconds)}
+        __Uptime:__ {uptime_string}
         __in seconds:__ {uptime_seconds}'''
         embed.set_footer(text=f'Requested by {ctx.author.name}', icon_url=ctx.author.avatar.url)
 
@@ -141,6 +158,17 @@ class General(commands.Cog):
             f"Boosts:         {boosters}```"
         )
 
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx: commands.Context, error: Exception):
+        # If the user lacked a required permission
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.reply("You don’t have permission to use this command.")
+        # If a custom check failed (e.g. your own @commands.check predicate)
+        elif isinstance(error, commands.CheckFailure):
+            await ctx.reply("You don’t meet the requirements to run this command.")
+        # Otherwise, re-raise so it can be logged or handled elsewhere
+        else:
+            raise error
 
 
 async def setup(bot):
