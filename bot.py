@@ -3,7 +3,9 @@ from dotenv import load_dotenv
 import time
 import datetime
 import logging
+
 from definitions import load_config, Config
+from database import Database
 
 import discord
 from discord.ext import commands
@@ -19,7 +21,8 @@ extensions = [
     # 'cogs.fun2',
     'cogs.logger',
     'cogs.math',
-    'cogs.server_config'
+    'cogs.server_config',
+    'cogs.leaderboard'
 ]
 
 
@@ -29,15 +32,16 @@ class BrethrenBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
-        self.config = bot_config
+        super().__init__(command_prefix=bot_config.command_prefix, intents=intents)
 
+        self.config = bot_config
+        self.db = Database()  # singleton DB manager
         self.start_time = datetime.datetime.now()
-        # Used to count the bot's uptime
         self.monotonic_start_time = time.monotonic()
 
-        super().__init__(command_prefix=self.config.command_prefix, intents=intents)
-
     async def setup_hook(self):
+        await self.db.connect()
+
         # Load cogs
         for ext in extensions:
             await self.load_extension(ext)
@@ -53,6 +57,11 @@ class BrethrenBot(commands.Bot):
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
+
+    async def close(self):
+        # Close the bot and the database connection
+        await super().close()
+        await self.db.close()
 
 
 if __name__ == '__main__':

@@ -4,3 +4,4 @@ __pycache__/
 .vscode/
 brethren_bot.log
 fun2.py
+messages.db
