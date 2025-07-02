@@ -15,6 +15,34 @@ class Database:
                 PRIMARY KEY (guild_id, user_id)
             );
         """)
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS snipes (
+                channel_id TEXT PRIMARY KEY,
+                message_id TEXT,
+                author_id TEXT,
+                author_name TEXT,
+                content TEXT,
+                created_at REAL,
+                attachments TEXT,
+                reply_author TEXT,
+                reply_content TEXT
+            );
+        """)
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS edit_snipes (
+                channel_id TEXT PRIMARY KEY,
+                message_id TEXT,
+                author_id TEXT,
+                author_name TEXT,
+                before_content TEXT,
+                after_content TEXT,
+                created_at REAL,
+                edited_at REAL,
+                attachments TEXT,
+                reply_author TEXT,
+                reply_content TEXT
+            );
+        """)
         await self.conn.commit()
 
     async def close(self):
@@ -41,3 +69,121 @@ class Database:
         rows = await cursor.fetchall()
         await cursor.close()
         return rows
+
+    async def store_snipe(
+        self,
+        channel_id: str,
+        message_id: str,
+        author_id: str,
+        author_name: str,
+        content: str,
+        created_at: float,
+        attachments: str,
+        reply_author: str | None,
+        reply_content: str | None,
+    ):
+        await self.conn.execute(
+            """
+            INSERT INTO snipes (
+                channel_id, message_id, author_id, author_name,
+                content, created_at, attachments, reply_author, reply_content
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(channel_id) DO UPDATE SET
+                message_id=excluded.message_id,
+                author_id=excluded.author_id,
+                author_name=excluded.author_name,
+                content=excluded.content,
+                created_at=excluded.created_at,
+                attachments=excluded.attachments,
+                reply_author=excluded.reply_author,
+                reply_content=excluded.reply_content;
+            """,
+            (
+                channel_id,
+                message_id,
+                author_id,
+                author_name,
+                content,
+                created_at,
+                attachments,
+                reply_author,
+                reply_content,
+            ),
+        )
+        await self.conn.commit()
+
+    async def get_snipe(self, channel_id: str):
+        cursor = await self.conn.execute(
+            """
+            SELECT message_id, author_id, author_name, content,
+                   created_at, attachments, reply_author, reply_content
+            FROM snipes WHERE channel_id = ?;
+            """,
+            (channel_id,),
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
+        return row
+
+    async def store_edit_snipe(
+        self,
+        channel_id: str,
+        message_id: str,
+        author_id: str,
+        author_name: str,
+        before_content: str,
+        after_content: str,
+        created_at: float,
+        edited_at: float,
+        attachments: str,
+        reply_author: str | None,
+        reply_content: str | None,
+    ):
+        await self.conn.execute(
+            """
+            INSERT INTO edit_snipes (
+                channel_id, message_id, author_id, author_name,
+                before_content, after_content, created_at, edited_at,
+                attachments, reply_author, reply_content
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(channel_id) DO UPDATE SET
+                message_id=excluded.message_id,
+                author_id=excluded.author_id,
+                author_name=excluded.author_name,
+                before_content=excluded.before_content,
+                after_content=excluded.after_content,
+                created_at=excluded.created_at,
+                edited_at=excluded.edited_at,
+                attachments=excluded.attachments,
+                reply_author=excluded.reply_author,
+                reply_content=excluded.reply_content;
+            """,
+            (
+                channel_id,
+                message_id,
+                author_id,
+                author_name,
+                before_content,
+                after_content,
+                created_at,
+                edited_at,
+                attachments,
+                reply_author,
+                reply_content,
+            ),
+        )
+        await self.conn.commit()
+
+    async def get_edit_snipe(self, channel_id: str):
+        cursor = await self.conn.execute(
+            """
+            SELECT message_id, author_id, author_name, before_content,
+                   after_content, created_at, edited_at, attachments,
+                   reply_author, reply_content
+            FROM edit_snipes WHERE channel_id = ?;
+            """,
+            (channel_id,),
+        )
+        row = await cursor.fetchone()
+        await cursor.close()
+        return row
