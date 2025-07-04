@@ -171,11 +171,14 @@ class General(commands.Cog):
         try:
             cached = await self.bot.db.get_cached_location(city)
             if cached:
+                print(f"City {city} found in db")
                 lat, lon, tz_name = cached
             else:
                 geolocator = Nominatim(user_agent="discord-time-bot")
+                print(f"Fetching location from API: {city}")
                 location = await asyncio.get_event_loop().run_in_executor(None, geolocator.geocode, city)
                 if not location:
+                    print(f"Couldn't find city: {city}")
                     return await ctx.send(f"Could not find '{city}'.")
 
                 lat, lon = location.latitude, location.longitude
@@ -186,6 +189,7 @@ class General(commands.Cog):
                     return await ctx.send("Could not determine time zone for that location.")
 
                 await self.bot.db.store_cached_location(city, lat, lon, tz_name)
+                print(f"Stored city {city} in db")
 
             tz = ZoneInfo(tz_name)
             now = datetime.datetime.now(tz)
