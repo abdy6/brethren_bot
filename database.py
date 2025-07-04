@@ -53,10 +53,19 @@ class Database:
                 city_name TEXT PRIMARY KEY,
                 latitude REAL,
                 longitude REAL,
-                tz_name TEXT
+                tz_name TEXT,
+                resolved_name TEXT
             );
             """
         )
+        # Add new column if the table already existed without it
+        try:
+            await self.conn.execute(
+                "ALTER TABLE location_cache ADD COLUMN resolved_name TEXT"
+            )
+        except aiosqlite.OperationalError:
+            # Column already exists
+            pass
         await self.conn.commit()
 
         # # Attempt to add new columns for reply jump information if they don't exist
@@ -98,24 +107,25 @@ class Database:
 
     async def get_cached_location(self, city_name: str):
         cursor = await self.conn.execute(
-            "SELECT latitude, longitude, tz_name FROM location_cache WHERE city_name = ?;",
+            "SELECT latitude, longitude, tz_name, resolved_name FROM location_cache WHERE city_name = ?;",
             (city_name.lower(),)
         )
         row = await cursor.fetchone()
         await cursor.close()
         return row
 
-    async def store_cached_location(self, city_name: str, latitude: float, longitude: float, tz_name: str):
+    async def store_cached_location(self, city_name: str, latitude: float, longitude: float, tz_name: str, resolved_name: str):
         await self.conn.execute(
             """
-            INSERT INTO location_cache (city_name, latitude, longitude, tz_name)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO location_cache (city_name, latitude, longitude, tz_name, resolved_name)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(city_name) DO UPDATE SET
                 latitude=excluded.latitude,
                 longitude=excluded.longitude,
-                tz_name=excluded.tz_name;
+                tz_name=excluded.tz_name,
+                resolved_name=excluded.resolved_name;
             """,
-            (city_name.lower(), latitude, longitude, tz_name),
+            (city_name.lower(), latitude, longitude, tz_name, resolved_name),
         )
         await self.conn.commit()
 

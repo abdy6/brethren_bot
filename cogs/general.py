@@ -172,7 +172,7 @@ class General(commands.Cog):
             cached = await self.bot.db.get_cached_location(city)
             if cached:
                 print(f"City {city} found in db")
-                lat, lon, tz_name = cached
+                lat, lon, tz_name, resolved_name = cached
             else:
                 geolocator = Nominatim(user_agent="discord-time-bot")
                 print(f"Fetching location from API: {city}")
@@ -182,20 +182,23 @@ class General(commands.Cog):
                     return await ctx.send(f"Could not find '{city}'.")
 
                 lat, lon = location.latitude, location.longitude
+                resolved_name = location.address
 
                 tf = TimezoneFinder()
                 tz_name = tf.timezone_at(lat=lat, lng=lon)
                 if not tz_name:
                     return await ctx.send("Could not determine time zone for that location.")
 
-                await self.bot.db.store_cached_location(city, lat, lon, tz_name)
+                await self.bot.db.store_cached_location(city, lat, lon, tz_name, resolved_name)
                 print(f"Stored city {city} in db")
 
             tz = ZoneInfo(tz_name)
             now = datetime.datetime.now(tz)
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            await ctx.send(f"The time in **{city.title()}** is currently `{time_str}` ({tz_name})")
+            await ctx.send(
+                f"The time in **{resolved_name}** (requested: {city}) is currently `{time_str}` ({tz_name})"
+            )
 
         except Exception:  # pylint: disable=broad-except
             logger.exception("An error occurred in timeat")
