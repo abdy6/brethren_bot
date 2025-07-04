@@ -6,6 +6,7 @@ Dubai Brethren Discord bot. This is a joke project.
 - `echo [message]`: Repeats the message passed by the user.
 - `uptime`: Get the bot uptime and start time.
 - `avatar [user]`: Show the specified user's avatar. If left empty, will show your avatar.
+- `timeat <city>`: Show the current time for the specified city (cached).
 
 ## Server Configuration
 - `setlogchannel [channel]`: Set the channel the bot should use for logging deleted messages.
