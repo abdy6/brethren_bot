@@ -6,6 +6,9 @@ import time
 import datetime
 import logging
 import definitions
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +160,41 @@ class General(commands.Cog):
             f"Boost Level:    {boost_level}\n"
             f"Boosts:         {boosters}```"
         )
+
+    @commands.hybrid_command(
+        name="timeat",
+        help="Get the time at the specified city."
+    )
+    async def timeat(self, ctx, *, city: str):
+        """Returns current time in the specified city."""
+        try:
+            # 1. Geocode the city name to lat/lon
+            geolocator = Nominatim(user_agent="discord-time-bot")
+            location = geolocator.geocode(city)
+            if not location:
+                return await ctx.send(f"Could not find '{city}'.")
+
+            lat, lon = location.latitude, location.longitude
+
+            # 2. Lookup IANA time zone for those coords
+            tf = TimezoneFinder()
+            tz_name = tf.timezone_at(lat=lat, lng=lon)
+            if not tz_name:
+                return await ctx.send("Could not determine time zone for that location.")
+
+            # 3. Get now() in that zone
+            tz = ZoneInfo(tz_name)
+            now = datetime.datetime.now(tz)
+            time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+            # 4. Send result
+            await ctx.send(f"The time in **{city.title()}** is currently `{time_str}` ({tz_name})")
+
+        except Exception as e:
+            print(e)
+            logger.error("An error occurred")
+            await ctx.send("Something went wrong, check logs.")
+    
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):

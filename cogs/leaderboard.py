@@ -44,7 +44,8 @@ class Leaderboard(commands.Cog):
         help="""
         Display the top message senders in this server.
         Usage: !leaderboard [limit]
-        """
+        """,
+        aliases=['lb']
     )
     async def leaderboard(self, ctx: commands.Context, limit: int = 10):
         
