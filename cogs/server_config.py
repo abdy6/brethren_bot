@@ -63,6 +63,15 @@ class ServerConfig(commands.Cog):
                 file=discord.File(fp, filename="config.json")
             )
 
+    @commands.hybrid_command(
+        name="cleartimezones",
+        help="(Debug) Delete every row in timezone table"
+    )
+    async def cleartimezones(self, ctx):
+        await self.bot.db.conn.execute("DELETE FROM location_cache;")
+        await self.bot.db.conn.commit()
+        await ctx.send("Cleared timezone table")
+
 
 async def setup(bot):
     await bot.add_cog(ServerConfig(bot))

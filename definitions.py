@@ -5,6 +5,9 @@ import discord
 
 logger = logging.getLogger(__name__)
 
+CITY_OVERRIDES = {
+    "riyadh": "Riyadh, Saudi Arabia"
+}
 
 class GuildConfig:
     """Configuration specific to a Discord guild."""

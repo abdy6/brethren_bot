@@ -58,15 +58,15 @@ class Database:
             );
             """
         )
-        # Add new column if the table already existed without it
-        try:
-            await self.conn.execute(
-                "ALTER TABLE location_cache ADD COLUMN resolved_name TEXT"
-            )
-        except aiosqlite.OperationalError:
-            # Column already exists
-            pass
-        await self.conn.commit()
+        # # Add new column if the table already existed without it
+        # try:
+        #     await self.conn.execute(
+        #         "ALTER TABLE location_cache ADD COLUMN resolved_name TEXT"
+        #     )
+        # except aiosqlite.OperationalError:
+        #     # Column already exists
+        #     pass
+        # await self.conn.commit()
 
         # # Attempt to add new columns for reply jump information if they don't exist
         # for table in ("snipes", "edit_snipes"):

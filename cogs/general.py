@@ -8,6 +8,7 @@ import asyncio
 import logging
 import definitions
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 
@@ -169,19 +170,36 @@ class General(commands.Cog):
     async def timeat(self, ctx, *, city: str):
         """Returns current time in the specified city."""
         try:
-            cached = await self.bot.db.get_cached_location(city)
+            # normalize the key
+            key = city.strip().lower()
+
+            # look in cache first
+            cached = await self.bot.db.get_cached_location(key)
             if cached:
                 print(f"City {city} found in db")
                 lat, lon, tz_name, resolved_name = cached
+
             else:
+                #  ── HERE: apply override if present ──
+                query = definitions.CITY_OVERRIDES.get(key, city)
+                print(f"Geocoding query: {query!r} (requested: {city!r})")
+
+                # blocking call → run in executor
                 geolocator = Nominatim(user_agent="discord-time-bot")
-                print(f"Fetching location from API: {city}")
-                location = await asyncio.get_event_loop().run_in_executor(None, geolocator.geocode, city)
+                location = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    geolocator.geocode,
+                    query
+                )
                 if not location:
-                    print(f"Couldn't find city: {city}")
+                    print(f"Couldn't find city for query: {query}")
                     return await ctx.send(f"Could not find '{city}'.")
 
                 lat, lon = location.latitude, location.longitude
+
+                # pick a friendly resolved name
+                # if we overrode, show the override; otherwise the full address
+                # resolved_name = definitions.CITY_OVERRIDES.get(key, location.address)
                 resolved_name = location.address
 
                 tf = TimezoneFinder()
@@ -189,20 +207,35 @@ class General(commands.Cog):
                 if not tz_name:
                     return await ctx.send("Could not determine time zone for that location.")
 
-                await self.bot.db.store_cached_location(city, lat, lon, tz_name, resolved_name)
-                print(f"Stored city {city} in db")
+                # cache under the normalized user‐input key
+                await self.bot.db.store_cached_location(
+                    key, lat, lon, tz_name, resolved_name
+                )
+                print(f"Stored city {city} ({resolved_name}) in db")
 
+            # format and send
             tz = ZoneInfo(tz_name)
             now = datetime.datetime.now(tz)
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
             await ctx.send(
-                f"The time in **{resolved_name}** (requested: {city}) is currently `{time_str}` ({tz_name})"
+                f"The time in **{resolved_name}** is `{time_str}` ({tz_name})"
             )
 
-        except Exception:  # pylint: disable=broad-except
+        except GeocoderTimedOut:
             logger.exception("An error occurred in timeat")
+            await ctx.send("Geocoder timed out.")
+        except Exception as e:
+            logger.exception()
+            print(e)
             await ctx.send("Something went wrong, check logs.")
+
+    @commands.hybrid_command(
+        name="about",
+        help="Get information about the bot."
+    )
+    async def about(self, ctx):
+        pass
     
 
     @commands.Cog.listener()
