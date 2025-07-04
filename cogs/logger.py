@@ -4,12 +4,30 @@ import definitions
 import pprint
 import json
 import datetime
+import urllib.parse
 
 import discord
 from discord.ext import commands
 from discord.ui import View, Button
 
 logger = logging.getLogger(__name__)
+
+
+def url_is_image(url: str) -> bool:
+    """Return ``True`` if the URL looks like it points to an image."""
+    path = urllib.parse.urlparse(url).path.lower()
+    return path.endswith(
+        (
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".webp",
+            ".bmp",
+            ".tiff",
+            ".apng",
+        )
+    )
 
 class Logger(commands.Cog):
     def __init__(self, bot):
@@ -73,6 +91,8 @@ class Logger(commands.Cog):
             attachments=json.dumps(attachments),
             reply_author=reply_author,
             reply_content=reply_content,
+            reply_channel_id=str(message.reference.channel_id) if message.reference else None,
+            reply_message_id=str(message.reference.message_id) if message.reference else None,
         )
         
         log_channel = message.guild.get_channel(guild_cfg.log_channel_id)
@@ -85,12 +105,17 @@ class Logger(commands.Cog):
             )
             embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
             embed.add_field(name="Channel", value=message.channel.mention)
+            view = View()
             if reply_author:
                 reply_text = reply_content or "*No text content*"
                 embed.add_field(
                     name="Replying to",
                     value=f"{reply_author}: {reply_text}",
                     inline=False
+                )
+                reply_jump = f"https://discord.com/channels/{message.guild.id}/{message.reference.channel_id}/{message.reference.message_id}"
+                view.add_item(
+                    Button(label="Jump to Reply", style=discord.ButtonStyle.link, url=reply_jump)
                 )
             # embed.add_field(name="Message ID", value=message.id)
             # embed.add_field(name="Date sent", value=f"<t:{int(message.created_at.timestamp())}>")
@@ -114,8 +139,8 @@ class Logger(commands.Cog):
                     value="\n".join(attachment_links),
                     inline=False
                 )
-                        
-            await log_channel.send(embed=embed)
+
+            await log_channel.send(embed=embed, view=view if len(view.children) > 0 else None)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
@@ -162,6 +187,8 @@ class Logger(commands.Cog):
             attachments=json.dumps(attachments),
             reply_author=reply_author,
             reply_content=reply_content,
+            reply_channel_id=str(before.reference.channel_id) if before.reference else None,
+            reply_message_id=str(before.reference.message_id) if before.reference else None,
         )
 
         # send to your log channel
@@ -205,13 +232,25 @@ class Logger(commands.Cog):
                 url=jump_url
             )
         )
+        if reply_author:
+            reply_jump = (
+                f"https://discord.com/channels/{before.guild.id}/"
+                f"{before.reference.channel_id or before.channel.id}/{before.reference.message_id}"
+            )
+            view.add_item(
+                Button(
+                    label="Jump to Reply",
+                    style=discord.ButtonStyle.link,
+                    url=reply_jump,
+                )
+            )
 
         attachment_links = []
         image_set = False
 
         for url in attachments:
             attachment_links.append(f"[Attachment]({url})")
-            if not image_set and any(url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"]):
+            if not image_set and url_is_image(url):
                 embed.set_image(url=url)
                 image_set = True
 
@@ -232,6 +271,9 @@ class Logger(commands.Cog):
         reply_content = None
         attachments = []
 
+        reply_ch_id = None
+        reply_msg_id = None
+
         if msg is None:
             row = await self.bot.db.get_snipe(str(ctx.channel.id))
             if row is None:
@@ -247,6 +289,8 @@ class Logger(commands.Cog):
                 attach_json,
                 reply_author,
                 reply_content,
+                reply_ch_id,
+                reply_msg_id,
             ) = row
 
             attachments = json.loads(attach_json) if attach_json else []
@@ -281,6 +325,8 @@ class Logger(commands.Cog):
                         ref = await msg.channel.fetch_message(msg.reference.message_id)
                     reply_author = str(ref.author)
                     reply_content = ref.content
+                    reply_ch_id = msg.reference.channel_id or msg.channel.id
+                    reply_msg_id = msg.reference.message_id
                 except Exception:  # pylint: disable=broad-except
                     reply_author = "Unknown"
 
@@ -293,13 +339,15 @@ class Logger(commands.Cog):
 
         embed.set_footer(text=f"Sniped from #{ctx.channel.name}")
 
+        view = View()
+
         # Handle attachments
         image_set = False
         attachment_links = []
 
         for url in attachments:
             attachment_links.append(f"[Attachment]({url})")
-            if not image_set and any(url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"]):
+            if not image_set and url_is_image(url):
                 embed.set_image(url=url)
                 image_set = True
 
@@ -317,8 +365,13 @@ class Logger(commands.Cog):
                 value=f"{reply_author}: {reply_text}",
                 inline=False,
             )
+            channel_id = reply_ch_id
+            message_id = reply_msg_id
+            if channel_id and message_id:
+                reply_jump = f"https://discord.com/channels/{ctx.guild.id}/{channel_id}/{message_id}"
+                view.add_item(Button(label="Jump to Reply", style=discord.ButtonStyle.link, url=reply_jump))
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, view=view if len(view.children) > 0 else None)
     
     @commands.hybrid_command(
         name="editsnipe", 
@@ -331,6 +384,8 @@ class Logger(commands.Cog):
         reply_author = None
         reply_content = None
         attachments = []
+        reply_ch_id = None
+        reply_msg_id = None
 
         if pair is None:
             row = await self.bot.db.get_edit_snipe(str(ctx.channel.id))
@@ -349,6 +404,8 @@ class Logger(commands.Cog):
                 attach_json,
                 reply_author,
                 reply_content,
+                reply_ch_id,
+                reply_msg_id,
             ) = row
 
             attachments = json.loads(attach_json) if attach_json else []
@@ -384,6 +441,8 @@ class Logger(commands.Cog):
                         ref = await before.channel.fetch_message(before.reference.message_id)
                     reply_author = str(ref.author)
                     reply_content = ref.content
+                    reply_ch_id = before.reference.channel_id or before.channel.id
+                    reply_msg_id = before.reference.message_id
                 except Exception:  # pylint: disable=broad-except
                     reply_author = "Unknown"
 
@@ -396,6 +455,8 @@ class Logger(commands.Cog):
             embed.add_field(name="Before", value=before.content or "*No text content*", inline=False)
             embed.add_field(name="After", value=after.content or "*No text content*", inline=False)
 
+        view = View()
+
         if reply_author:
             reply_text = reply_content or "*No text content*"
             embed.add_field(
@@ -403,12 +464,15 @@ class Logger(commands.Cog):
                 value=f"{reply_author}: {reply_text}",
                 inline=False,
             )
+            if reply_ch_id and reply_msg_id:
+                reply_jump = f"https://discord.com/channels/{ctx.guild.id}/{reply_ch_id}/{reply_msg_id}"
+                view.add_item(Button(label="Jump to Reply", style=discord.ButtonStyle.link, url=reply_jump))
 
         attachment_links = []
         image_set = False
         for url in attachments:
             attachment_links.append(f"[Attachment]({url})")
-            if not image_set and any(url.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif"]):
+            if not image_set and url_is_image(url):
                 embed.set_image(url=url)
                 image_set = True
 
@@ -419,7 +483,7 @@ class Logger(commands.Cog):
                 inline=False,
             )
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, view=view if len(view.children) > 0 else None)
 
     # For debug purposes
     @commands.hybrid_command(name="snipelist", help="Show sniped message dictionary (debug)", aliases=['sl'])
