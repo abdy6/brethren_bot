@@ -49,17 +49,17 @@ class Database:
         """)
         await self.conn.commit()
 
-        # Attempt to add new columns for reply jump information if they don't exist
-        for table in ("snipes", "edit_snipes"):
-            try:
-                await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN reply_channel_id TEXT")
-            except aiosqlite.OperationalError:
-                pass
-            try:
-                await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN reply_message_id TEXT")
-            except aiosqlite.OperationalError:
-                pass
-        await self.conn.commit()
+        # # Attempt to add new columns for reply jump information if they don't exist
+        # for table in ("snipes", "edit_snipes"):
+        #     try:
+        #         await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN reply_channel_id TEXT")
+        #     except aiosqlite.OperationalError:
+        #         pass
+        #     try:
+        #         await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN reply_message_id TEXT")
+        #     except aiosqlite.OperationalError:
+        #         pass
+        # await self.conn.commit()
 
     async def close(self):
         if self.conn:
