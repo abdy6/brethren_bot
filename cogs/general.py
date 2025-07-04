@@ -4,6 +4,7 @@ import discord
 import math
 import time
 import datetime
+import asyncio
 import logging
 import definitions
 from geopy.geocoders import Nominatim
@@ -168,31 +169,32 @@ class General(commands.Cog):
     async def timeat(self, ctx, *, city: str):
         """Returns current time in the specified city."""
         try:
-            # 1. Geocode the city name to lat/lon
-            geolocator = Nominatim(user_agent="discord-time-bot")
-            location = geolocator.geocode(city)
-            if not location:
-                return await ctx.send(f"Could not find '{city}'.")
+            cached = await self.bot.db.get_cached_location(city)
+            if cached:
+                lat, lon, tz_name = cached
+            else:
+                geolocator = Nominatim(user_agent="discord-time-bot")
+                location = await asyncio.get_event_loop().run_in_executor(None, geolocator.geocode, city)
+                if not location:
+                    return await ctx.send(f"Could not find '{city}'.")
 
-            lat, lon = location.latitude, location.longitude
+                lat, lon = location.latitude, location.longitude
 
-            # 2. Lookup IANA time zone for those coords
-            tf = TimezoneFinder()
-            tz_name = tf.timezone_at(lat=lat, lng=lon)
-            if not tz_name:
-                return await ctx.send("Could not determine time zone for that location.")
+                tf = TimezoneFinder()
+                tz_name = tf.timezone_at(lat=lat, lng=lon)
+                if not tz_name:
+                    return await ctx.send("Could not determine time zone for that location.")
 
-            # 3. Get now() in that zone
+                await self.bot.db.store_cached_location(city, lat, lon, tz_name)
+
             tz = ZoneInfo(tz_name)
             now = datetime.datetime.now(tz)
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            # 4. Send result
             await ctx.send(f"The time in **{city.title()}** is currently `{time_str}` ({tz_name})")
 
-        except Exception as e:
-            print(e)
-            logger.error("An error occurred")
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("An error occurred in timeat")
             await ctx.send("Something went wrong, check logs.")
     
 
