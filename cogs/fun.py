@@ -5,6 +5,9 @@ import logging
 import random
 import asyncio
 import datetime
+import aiohttp
+import io
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,46 @@ class Fun(commands.Cog):
         logger.debug("Timer set for %s seconds (%s) by %s (%s)", seconds, future_ts, ctx.author.name, ctx.author.id)
         await asyncio.sleep(seconds)
         await ctx.send(f"{mention} - Timer finished. ({seconds}s)")
+
+    @commands.command(name="togif", description="Reply to an image and convert it to a GIF.")
+    async def togif(self, ctx):
+        # Make sure user is replying to a message
+        if not ctx.message.reference:
+            return await ctx.send("You must reply to a message with an image!")
+
+        try:
+            replied_msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        except Exception:
+            return await ctx.send("Could not fetch the replied message.")
+
+        if not replied_msg.attachments:
+            return await ctx.send("The replied message has no attachments.")
+
+        # Filter for image attachment
+        attachment = next((a for a in replied_msg.attachments if a.filename.lower().endswith((".png", ".jpg", ".jpeg"))), None)
+        if not attachment:
+            return await ctx.send("No valid image found to convert, or the attachment is already a GIF.")
+
+        # Download the image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment.url) as resp:
+                if resp.status != 200:
+                    return await ctx.send("Failed to download image.")
+                data = await resp.read()
+
+        try:
+            img = Image.open(io.BytesIO(data)).convert("RGBA")
+            output = io.BytesIO()
+            img.save(output, format="GIF", save_all=True, loop=0)
+            output.seek(0)
+        except Exception as e:
+            logger.exception("Exception in togif")
+            print(e)
+            return await ctx.send("Failed to convert image, check logs")
+
+        # 6. Send the GIF back
+        file = discord.File(fp=output, filename="converted.gif")
+        await ctx.reply(file=file)
     
 async def setup(bot):
     await bot.add_cog(Fun(bot))

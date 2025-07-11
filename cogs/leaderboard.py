@@ -27,7 +27,7 @@ class Leaderboard(commands.Cog):
 
     @commands.hybrid_command(
         name="stats",
-        help="Show message count for a user. Defaults to the author if no member is provided."
+        help="Show message count for a user.\nDefaults to the author if no member is provided."
     )
     async def stats(self, ctx: commands.Context, member: discord.Member = None):
         target = member or ctx.author

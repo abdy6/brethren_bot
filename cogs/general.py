@@ -214,19 +214,26 @@ class General(commands.Cog):
                 print(f"Stored city {city} ({resolved_name}) in db")
 
             # format and send
-            tz = ZoneInfo(tz_name)
-            now = datetime.datetime.now(tz)
+            now = datetime.datetime.now(ZoneInfo(tz_name))
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
+            embed = discord.Embed(title="Time at Location")
+            embed.add_field(name="Location", value=resolved_name, inline=False)
+            embed.add_field(
+                name="Time and Date",
+                value=f"{now.strftime('%A, %B %d, %Y')}\n{now.strftime('%I:%M:%S %p')}",
+                inline=False
+            )
+
             await ctx.send(
-                f"The time in **{resolved_name}** is `{time_str}` ({tz_name})"
+                embed=embed
             )
 
         except GeocoderTimedOut:
             logger.exception("An error occurred in timeat")
             await ctx.send("Geocoder timed out.")
         except Exception as e:
-            logger.exception()
+            logger.exception("Something went wrong", exc_info=True)
             print(e)
             await ctx.send("Something went wrong, check logs.")
 
@@ -235,7 +242,21 @@ class General(commands.Cog):
         help="Get information about the bot."
     )
     async def about(self, ctx):
-        pass
+        count = len(self.bot.guilds)
+        embed = discord.Embed(
+            title="About Brethren Bot",
+            color=discord.Color.dark_orange()
+        )
+        embed.description = f"Made by @a3dm on discord. I'm currently in `{count}` server{'s' if count != 1 else ''}."
+        embed.add_field(name="GitHub", value="[Link](https://github.com/abdy6/brethren_bot)")
+        embed.add_field(
+            name="Socials", 
+            value="[Twitter (X)](https://x.com/getinglouderig)\n" \
+            "[Youtube](https://www.youtube.com/@abdyrobloxer)"
+        )
+        embed.set_thumbnail(url="https://cdn.discordapp.com/icons/1158077169348661330/975a3f58835f656e71d10ff61dfd2bd8.webp")
+        
+        await ctx.send(embed=embed)
     
 
     @commands.Cog.listener()
