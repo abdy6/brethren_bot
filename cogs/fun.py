@@ -84,7 +84,7 @@ class Fun(commands.Cog):
             return await ctx.send("Failed to convert image, check logs")
 
         # 6. Send the GIF back
-        file = discord.File(fp=output, filename="converted.gif")
+        file = discord.File(fp=output, filename=f"converted_{datetime.datetime.now().strftime('%Y_%m_%d_%H%M%S')}.gif")
         await ctx.reply(file=file)
     
 async def setup(bot):

@@ -215,7 +215,6 @@ class General(commands.Cog):
 
             # format and send
             now = datetime.datetime.now(ZoneInfo(tz_name))
-            time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
             embed = discord.Embed(title="Time at Location")
             embed.add_field(name="Location", value=resolved_name, inline=False)
@@ -249,11 +248,7 @@ class General(commands.Cog):
         )
         embed.description = f"Made by @a3dm on discord. I'm currently in `{count}` server{'s' if count != 1 else ''}."
         embed.add_field(name="GitHub", value="[Link](https://github.com/abdy6/brethren_bot)")
-        embed.add_field(
-            name="Socials", 
-            value="[Twitter (X)](https://x.com/getinglouderig)\n" \
-            "[Youtube](https://www.youtube.com/@abdyrobloxer)"
-        )
+
         embed.set_thumbnail(url="https://cdn.discordapp.com/icons/1158077169348661330/975a3f58835f656e71d10ff61dfd2bd8.webp")
         
         await ctx.send(embed=embed)
