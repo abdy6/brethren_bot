@@ -29,7 +29,7 @@ def url_is_image(url: str) -> bool:
     )
 
 class Logger(commands.Cog):
-    """For logging server events and sniping support."""
+    """Cog for logging server events and sniping support."""
     def __init__(self, bot):
         self.bot = bot
         self.sniped_messages: dict[int, discord.Message] = {} # {channel.id, message}
