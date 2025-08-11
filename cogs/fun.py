@@ -39,7 +39,7 @@ class Fun(commands.Cog):
         embed = discord.Embed(
             title='Timer', 
             color=discord.Color.darker_gray(),
-            description=f"You'll get a ping {seconds} seconds from now. (<t:{future_ts}> - <t:{future_ts}:R>)"
+            description=f"You'll get a ping {seconds} seconds from now. (<t:{future_ts}:R>)"
         )
         embed.set_footer(text=f'Requested by {ctx.author.name}', icon_url=ctx.author.display_avatar.url)
         await ctx.send(embed=embed)

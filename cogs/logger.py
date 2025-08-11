@@ -1,7 +1,6 @@
 import logging
 from typing import Optional, Tuple
 import definitions
-import pprint
 import json
 import datetime
 import urllib.parse
@@ -30,31 +29,22 @@ def url_is_image(url: str) -> bool:
     )
 
 class Logger(commands.Cog):
+    """For logging server events and sniping support."""
     def __init__(self, bot):
         self.bot = bot
         self.sniped_messages: dict[int, discord.Message] = {} # {channel.id, message}
-        self.sniped_messages_debug: dict[str, Tuple[str, str]] = {}
 
         self.edited_messages: dict[int, Tuple[discord.Message, discord.Message]] = {}
-        self.edited_messages_debug: dict[str, Tuple[str, str]] = {}
+
+    # Listeners
     
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
+        """Send an embed to the log channel when a message is deleted, and save it for sniping."""
         if message.guild is None:
             return
 
         guild_cfg = definitions.get_guild_config(message.guild.id)
-        # print("IGNORED:", guild_cfg.ignored_channels, "THIS:", message.channel.id)
-        # print(type(guild_cfg.ignored_channels[0]))
-        # print(f"ignored: {message.channel.id in guild_cfg.ignored_channels}")
-
-        logger.debug(
-            'Message deleted in channel %s: %s (%s): %s',
-            message.channel.id,
-            message.author.name,
-            message.author.id,
-            message.content
-        )
 
         if guild_cfg.log_channel_id is None:
             return
@@ -64,7 +54,6 @@ class Logger(commands.Cog):
 
         # Store deleted message for sniping
         self.sniped_messages[message.channel.id] = message
-        self.sniped_messages_debug[message.channel.name] = (message.author.name, message.content)
 
         attachments = [att.url for att in message.attachments]
 
@@ -158,7 +147,6 @@ class Logger(commands.Cog):
 
         # cache for editsnipe
         self.edited_messages[before.channel.id] = (before, after)
-        self.edited_messages_debug[before.channel.name] = (before.content, after.content)
 
         attachments = [att.url for att in before.attachments]
 
@@ -262,6 +250,35 @@ class Logger(commands.Cog):
             )
 
         await log_channel.send(embed=embed, view=view)
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        log_channel = member.guild.get_channel(definitions.get_guild_config(member.guild.id).log_channel_id)
+        if log_channel:
+            embed = discord.Embed(
+                title="Member Joined",
+                color=discord.Color.green(),
+                timestamp=member.joined_at
+            )
+            embed.set_author(name=member.name, icon_url=member.avatar.url)
+            embed.add_field(
+                name="Mention",
+                value=member.mention
+            ).add_field(
+                name="Account Created",
+                value=f"<t:{int(member.created_at.timestamp)}>"
+            ).add_field(
+                name="Member Count",
+                value=str(member.guild.member_count)
+            )
+
+            await log_channel.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        pass
+
+    # Commands
     
     @commands.hybrid_command(name="snipe", help="Show the most recently deleted message in this channel.")
     @commands.has_permissions(manage_messages=True)
@@ -484,13 +501,6 @@ class Logger(commands.Cog):
             )
 
         await ctx.send(embed=embed, view=view if len(view.children) > 0 else None)
-
-    # For debug purposes
-    @commands.hybrid_command(name="snipelist", help="Show sniped message dictionary (debug)", aliases=['sl'])
-    @definitions.is_bot_owner()
-    async def snipelist(self, ctx):
-        await ctx.send(f"```Deletes: {pprint.pformat(self.sniped_messages_debug)}\n"
-                       f"Edits:   {pprint.pformat(self.edited_messages_debug)}```")
     
 
 async def setup(bot):

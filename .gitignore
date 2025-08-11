@@ -5,3 +5,4 @@ __pycache__/
 brethren_bot.log
 fun2.py
 messages.db
+config.json
